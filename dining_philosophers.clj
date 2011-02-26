@@ -4,6 +4,10 @@
 ;; Implements the Chandy/Misra solution to 'Dining Philosophers' problem
 ;; http://en.wikipedia.org/wiki/Dining_philosophers
 
+(def *eating-time* 300)
+(def *thinking-time* 300)
+(def *waiting-time* 300)
+
 (defn msg-fn [{:keys [name l-phil r-phil l-fork r-fork] :as state}
 	      msg
 	      args
@@ -20,16 +24,16 @@
 		    (if (= :clean l-fork r-fork)
 		      (do
 			(actor-println name "is eating!")
-			(Thread/sleep 300)
+			(Thread/sleep *eating-time*)
 			(send-msg *agent* :think)
 			(assoc state :l-fork :dirty :r-fork :dirty))
 		      (do
-			(Thread/sleep 300)
+			(Thread/sleep *waiting-time*)
 			(send-msg *agent* :hungry)
 			state)))
 	  :think (do
 		   (actor-println name "is thinking!")
-		   (Thread/sleep 300)
+		   (Thread/sleep *thinking-time*)
 		   (send-msg *agent* :hungry)
 		   state)
 	  :fork (cond
