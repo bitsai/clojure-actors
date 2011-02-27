@@ -24,7 +24,7 @@
 
 (def waiting-room
   (actor
-   {:waiting [] :barber-asleep? true}
+   {:waiting nil :barber-asleep? true}
    (fn [{:keys [waiting barber-asleep?] :as state}
 	[msg-type & args]
 	sender]
@@ -39,17 +39,17 @@
 			  (do
 			    (send-msg self :next)
 			    (assoc state
-			      :waiting (conj waiting customer)
+			      :waiting (cons customer waiting)
 			      :barber-asleep? false))
 			  (do
 			    (send-msg sender :wait)
 			    (assoc state
-			      :waiting (conj waiting customer))))))
+			      :waiting (cons customer waiting))))))
 	     :next (if (> (count waiting) 0)
 		     (do
-		       (send-msg barber :enter (first waiting))
+		       (send-msg barber :enter (last waiting))
 		       (assoc state
-			 :waiting (rest waiting)))
+			 :waiting (butlast waiting)))
 		     (do
 		       (send-msg barber :wait)
 		       (assoc state
