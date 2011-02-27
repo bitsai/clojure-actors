@@ -23,7 +23,7 @@
 		      (send-msg r-neighbor :request))
 		    (if (= :clean l-fork r-fork)
 		      (do
-			(actor-println id "is eating!")
+			(actor-println "philosopher" id "is eating!")
 			(Thread/sleep *eating-time*)
 			(send-msg self :think)
 			(assoc state :l-fork :dirty :r-fork :dirty))
@@ -32,7 +32,7 @@
 			(send-msg self :hungry)
 			state)))
 	  :think (do
-		   (actor-println id "is thinking!")
+		   (actor-println "philosopher" id "is thinking!")
 		   (Thread/sleep *thinking-time*)
 		   (send-msg self :hungry)
 		   state)
