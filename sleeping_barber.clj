@@ -24,7 +24,7 @@
 
 (def waiting-room
   (actor
-   {:queue nil :asleep? true}
+   {:queue [] :asleep? true}
    (fn [{:keys [queue asleep?] :as state}
 	[msg-type & _]
 	sender]
@@ -38,15 +38,15 @@
 		     asleep? (do
 			       (send-msg self :next)
 			       (assoc state
-				 :queue (cons sender queue)
+				 :queue (conj queue sender)
 				 :asleep? false))
 		     :else (do
 			     (send-msg sender :wait)
-			     (assoc state :queue (cons sender queue))))
+			     (assoc state :queue (conj queue sender))))
 	     :next (if (seq queue)
 		     (do
-		       (send-msg barber :enter (last queue))
-		       (assoc state :queue (butlast queue)))
+		       (send-msg barber :enter (first queue))
+		       (assoc state :queue (subvec queue 1)))
 		     (do
 		       (send-msg barber :wait)
 		       (assoc state :asleep? true)))
