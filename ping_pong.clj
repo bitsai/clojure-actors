@@ -1,14 +1,14 @@
 (ns ping-pong
   (:use actor))
 
-;; Port of 'ping pong' example from 'Scala Actors: A Shot Tutorial'
+;; Port of 'Ping Pong' example from 'Scala Actors: A Shot Tutorial'
 ;; http://www.scala-lang.org/node/242
 
 (def ponger
   (actor
    0
-   (fn [count msg _ sender]
-     (case msg
+   (fn [count [msg-type & _] sender]
+     (case msg-type
 	   :ping (do
 		   (if (zero? (rem count 1000))
 		     (actor-println "Ponger: ping" count))
@@ -22,8 +22,8 @@
 (def pinger
   (actor
    100000
-   (fn [count msg _ sender]
-     (case msg
+   (fn [count [msg-type & _] sender]
+     (case msg-type
 	   :start (do
 		    (send-msg ponger :ping)
 		    (dec count))

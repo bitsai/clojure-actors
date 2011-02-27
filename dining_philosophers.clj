@@ -8,33 +8,33 @@
 (def *thinking-time* 300)
 (def *waiting-time* 300)
 
-(defn msg-fn [{:keys [name l-phil r-phil l-fork r-fork] :as state}
-	      msg
-	      args
+(defn msg-fn [{:keys [id l-neighbor r-neighbor l-fork r-fork] :as state}
+	      [msg-type & args]
 	      sender]
-  (let [left? (= sender l-phil)
-	right? (= sender r-phil)]
-    (case msg
-	  :set-state (merge state (first args))
+  (let [self *agent*
+	left? (= sender l-neighbor)
+	right? (= sender r-neighbor)]
+    (case msg-type
+	  :add-state (merge state (first args))
 	  :hungry (do
 		    (if (nil? l-fork)
-		      (send-msg l-phil :request))
+		      (send-msg l-neighbor :request))
 		    (if (nil? r-fork)
-		      (send-msg r-phil :request))
+		      (send-msg r-neighbor :request))
 		    (if (= :clean l-fork r-fork)
 		      (do
-			(actor-println name "is eating!")
+			(actor-println id "is eating!")
 			(Thread/sleep *eating-time*)
-			(send-msg *agent* :think)
+			(send-msg self :think)
 			(assoc state :l-fork :dirty :r-fork :dirty))
 		      (do
 			(Thread/sleep *waiting-time*)
-			(send-msg *agent* :hungry)
+			(send-msg self :hungry)
 			state)))
 	  :think (do
-		   (actor-println name "is thinking!")
+		   (actor-println id "is thinking!")
 		   (Thread/sleep *thinking-time*)
-		   (send-msg *agent* :hungry)
+		   (send-msg self :hungry)
 		   state)
 	  :fork (cond
 		 (and left? (nil? l-fork)) (assoc state :l-fork :clean)
@@ -43,39 +43,39 @@
 	  :request (cond
 		    (and left? (= :dirty l-fork))
 		    (do
-		      (send-msg l-phil :fork)
+		      (send-msg l-neighbor :fork)
 		      (assoc state :l-fork nil))
 		    (and right? (= :dirty r-fork))
 		    (do
-		      (send-msg r-phil :fork)
+		      (send-msg r-neighbor :fork)
 		      (assoc state :r-fork nil))
 		    :else state)
 	  state)))
 
 (defn philosophers []
   (for [i (range)]
-    (actor {:name i} msg-fn)))
+    (actor {:id i} msg-fn)))
 
-(defn set-neighbors [phils]
-  (let [n (count phils)]
+(defn set-neighbors [philosophers]
+  (let [n (count philosophers)]
     (doseq [i (range n)]
-      (let [p_i-1 (nth phils (mod (dec i) n))
-	    p_i (nth phils i)
-	    p_i+1 (nth phils (mod (inc i) n))]
-	(send-msg p_i :set-state {:l-phil p_i-1 :r-phil p_i+1})))))
+      (let [pi-1 (nth philosophers (mod (dec i) n))
+	    pi (nth philosophers i)
+	    pi+1 (nth philosophers (mod (inc i) n))]
+	(send-msg pi :add-state {:l-neighbor pi-1 :r-neighbor pi+1})))))
 
-(defn set-forks [[first-phil & phils]]
-  (send-msg first-phil :set-state {:l-fork :dirty :r-fork :dirty})
-  (doseq [phil (butlast phils)]
-    (send-msg phil :set-state {:l-fork nil :r-fork :dirty}))
-  (send-msg (last phils) :set-state {:l-fork nil :r-fork nil}))
+(defn set-forks [[first-philosopher & philosophers]]
+  (send-msg first-philosopher :add-state {:l-fork :dirty :r-fork :dirty})
+  (doseq [p (butlast philosophers)]
+    (send-msg p :add-state {:l-fork nil :r-fork :dirty}))
+  (send-msg (last philosophers) :add-state {:l-fork nil :r-fork nil}))
 
 (defn dining-philosophers [n]
   (if (> n 1)
-    (let [phils (take n (philosophers))]
-      (set-neighbors phils)
-      (set-forks phils)
-      (doseq [phil phils]
-	(send-msg phil :think)))))
+    (let [philosophers (take n (philosophers))]
+      (set-neighbors philosophers)
+      (set-forks philosophers)
+      (doseq [p philosophers]
+	(send-msg p :think)))))
 
 (dining-philosophers 5)
