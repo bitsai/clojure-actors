@@ -44,11 +44,11 @@
 		    (and left? (= :dirty l-fork))
 		    (do
 		      (send-msg l-neighbor :fork)
-		      (assoc state :l-fork nil))
+		      (dissoc state :l-fork))
 		    (and right? (= :dirty r-fork))
 		    (do
 		      (send-msg r-neighbor :fork)
-		      (assoc state :r-fork nil))
+		      (dissoc state :r-fork))
 		    :else state)
 	  state)))
 
@@ -67,8 +67,7 @@
 (defn set-forks [[first-philosopher & philosophers]]
   (send-msg first-philosopher :add-state {:l-fork :dirty :r-fork :dirty})
   (doseq [p (butlast philosophers)]
-    (send-msg p :add-state {:l-fork nil :r-fork :dirty}))
-  (send-msg (last philosophers) :add-state {:l-fork nil :r-fork nil}))
+    (send-msg p :add-state {:r-fork :dirty})))
 
 (defn dining-philosophers [n]
   (if (> n 1)
