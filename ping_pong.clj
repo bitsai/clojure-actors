@@ -1,7 +1,7 @@
 (ns ping-pong
   (:use actor))
 
-;; Port of 'Ping Pong' example from 'Scala Actors: A Shot Tutorial'
+;; Port of 'Ping Pong' example from 'Scala Actors: A Short Tutorial'
 ;; http://www.scala-lang.org/node/242
 
 (def ponger
