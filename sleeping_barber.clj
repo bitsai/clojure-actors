@@ -1,84 +1,68 @@
 (ns sleeping-barber
-  (:use actor))
+  (:require actor))
 
 ;; Port of 'Sleeping Barber' example from gparallelizer wiki
 ;; http://code.google.com/p/gparallelizer/wiki/ActorsExamples
 
-(def *capacity* 3)
-(def *processing-time* 500)
+(def capacity 3)
+(def processing-time 500)
 
 (def barber
-  (actor
+  (actor/actor
    nil
-   (fn [_ [msg-type & args] sender]
-     (case msg-type
-	   :enter (let [customer (first args)
-			id (@customer :state)]
-		    (actor-println "Barber: Processing customer" id)
-		    (send-msg customer :start)
-		    (Thread/sleep *processing-time*)
-		    (send-msg customer :done)
-		    (send-msg sender :next))
-	   :wait (actor-println "Barber: No customers. Sleeping.")
-	   nil))))
+   (fn [msg _ sender]
+     (let [msg-type (first msg)]
+       (case msg-type
+         :enter (let [customer (second msg)
+                      cust-id (:state @customer)]
+                  (actor/println "Barber: Processing customer" cust-id)
+                  (actor/send customer :start)
+                  (Thread/sleep processing-time)
+                  (actor/send customer :done)
+                  (actor/send sender :next))
+         :wait (actor/println "Barber: No customers, sleeping"))))))
 
 (def waiting-room
-  (actor
+  (actor/actor
    {:queue [] :asleep? true}
-   (fn [{:keys [queue asleep?] :as state}
-	[msg-type & _]
-	sender]
-     (let [self *agent*
-	   full? (= (count queue) *capacity*)]
+   (fn [msg state sender]
+     (let [msg-type (first msg)
+           {:keys [queue asleep?]} state
+           full? (= capacity (count queue))
+           self *agent*]
        (case msg-type
-	     :enter (cond
-		     full? (do
-			     (send-msg sender :full)
-			     state)
-		     asleep? (do
-			       (send-msg self :next)
-			       (assoc state
-				 :queue (conj queue sender)
-				 :asleep? false))
-		     :else (do
-			     (send-msg sender :wait)
-			     (assoc state :queue (conj queue sender))))
-	     :next (if (seq queue)
-		     (do
-		       (send-msg barber :enter (first queue))
-		       (assoc state :queue (subvec queue 1)))
-		     (do
-		       (send-msg barber :wait)
-		       (assoc state :asleep? true)))
-	     state)))))
+         :enter (cond full? (do (actor/send sender :full)
+                                state)
+                      asleep? (do (actor/send self :next)
+                                  (assoc state
+                                    :queue (conj queue sender)
+                                    :asleep? false))
+                      :else (do (actor/send sender :wait)
+                                (assoc state :queue (conj queue sender))))
+         :next (if (seq queue)
+                 (do (actor/send barber :enter (first queue))
+                     (assoc state :queue (subvec queue 1)))
+                 (do (actor/send barber :wait)
+                     (assoc state :asleep? true))))))))
 
 (defn customer [id]
-  (actor
+  (actor/actor
    id
-   (fn [id [msg-type & _] _]
-     (case msg-type
-	   :enter (do
-		    (actor-println "Customer" id "is entering.")
-		    (send-msg waiting-room :enter)
-		    id)
-	   :full (do
-		   (actor-println "Customer" id "is leaving.")
-		   id)
-	   :wait (do
-		   (actor-println "Customer" id "is waiting.")
-		   id)
-	   :start (do
-		    (actor-println "Customer" id "is being served.")
-		    id)
-	   :done (do
-		   (actor-println "Customer" id "has been served.")
-		   id)
-	   id))))
+   (fn [msg _ _]
+     (let [msg-type (first msg)]
+       (case msg-type
+         :enter (do (actor/println "Customer" id "is entering")
+                    (actor/send waiting-room :enter))
+         :full (actor/println "Customer" id "is leaving")
+         :wait (actor/println "Customer" id "is waiting")
+         :start (actor/println "Customer" id "is being served")
+         :done (actor/println "Customer" id "has been served"))
+       id))))
 
 (defn sleeping-barber []
-  (send-msg barber :wait)
+  (actor/send barber :wait)
   (doseq [i (range)]
-    (send-msg (customer i) :enter)
-    (Thread/sleep (rand-int (* 2 *processing-time*)))))
+    (actor/send (customer i) :enter)
+    (Thread/sleep (rand-int (* 2 processing-time)))))
 
 (sleeping-barber)

@@ -1,17 +1,24 @@
 (ns actor)
 
+(defrecord actor-content [state msg-fn])
+
 (defn actor [state msg-fn]
-  (agent {:state state :msg-fn msg-fn}))
+  (agent (actor-content. state msg-fn)))
 
-(defn- apply-msg-fn [{:keys [state msg-fn] :as content} msg sender]
-  (let [new-state (msg-fn state msg sender)]
-    (assoc content :state new-state)))
+(defn- apply-msg-fn [actor-content msg sender]
+  (let [{:keys [state msg-fn]} actor-content
+        new-state (msg-fn msg state sender)]
+    (assoc actor-content :state new-state)))
 
-(defn send-msg [actor & xs]
-  (send-off actor apply-msg-fn xs *agent*)
-  nil)
+(defn send [actor & xs]
+  (let [sender *agent*]
+    (send-off actor apply-msg-fn xs sender)
+    nil))
 
-(def printer (actor nil (fn [_ xs _] (apply println xs))))
+(def println-actor (actor
+                    nil
+                    (fn [msg _ _]
+                      (apply println msg))))
 
-(defn actor-println [& xs]
-  (apply send-msg printer xs))
+(defn println [& xs]
+  (apply actor/send println-actor xs))

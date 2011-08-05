@@ -1,43 +1,37 @@
 (ns ping-pong
-  (:use actor))
+  (:require actor))
 
 ;; Port of 'Ping Pong' example from 'Scala Actors: A Short Tutorial'
 ;; http://www.scala-lang.org/node/242
 
 (def ponger
-  (actor
+  (actor/actor
    0
-   (fn [count [msg-type & _] sender]
-     (case msg-type
-	   :ping (do
-		   (if (zero? (rem count 1000))
-		     (actor-println "Ponger: ping" count))
-		   (send-msg sender :pong)
-		   (inc count))
-	   :stop (do
-		   (actor-println "Ponger: stop")
-		   count)
-	   count))))
+   (fn [msg count sender]
+     (let [msg-type (first msg)]
+       (case msg-type
+         :ping (do (when (zero? (rem count 1000))
+                     (actor/println "Ponger: ping" count))
+                   (actor/send sender :pong)
+                   (inc count))
+         :stop (do (actor/println "Ponger: stop")
+                   count))))))
 
 (def pinger
-  (actor
+  (actor/actor
    100000
-   (fn [count [msg-type & _] sender]
-     (case msg-type
-	   :start (do
-		    (send-msg ponger :ping)
-		    (dec count))
-	   :pong (do
-		   (if (zero? (rem count 1000))
-		     (actor-println "Pinger: pong"))
-		   (if (> count 0)
-		     (do
-		       (send-msg sender :ping)
-		       (dec count))
-		     (do
-		       (actor-println "Pinger: stop")
-		       (send-msg sender :stop)
-		       count)))
-	   count))))
+   (fn [msg count sender]
+     (let [msg-type (first msg)]
+       (case msg-type
+         :start (do (actor/send ponger :ping)
+                    (dec count))
+         :pong (do (when (zero? (rem count 1000))
+                     (actor/println "Pinger: pong"))
+                   (if (> count 0)
+                     (do (actor/send sender :ping)
+                         (dec count))
+                     (do (actor/println "Pinger: stop")
+                         (actor/send sender :stop)
+                         count))))))))
 
-(send-msg pinger :start)
+(actor/send pinger :start)
