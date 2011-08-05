@@ -91,9 +91,7 @@
   (when (> n 1)
     (let [philosophers (for [i (range n)]
                          (actor/actor
-                          {:id i
-                           :l-asked? false
-                           :r-asked? false}
+                          {:id i :l-asked? false :r-asked? false}
                           msg-fn))]
       (set-neighbors philosophers)
       (set-forks philosophers)
