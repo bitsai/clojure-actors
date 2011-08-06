@@ -11,8 +11,8 @@
     (assoc actor-content :state new-state)))
 
 (defn send [actor & xs]
-  (let [sender *agent*]
-    (send-off actor apply-msg-fn xs sender)
+  (let [self *agent*]
+    (send-off actor apply-msg-fn xs self)
     nil))
 
 (def println-actor (actor
