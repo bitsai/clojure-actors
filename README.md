@@ -1,5 +1,13 @@
+# Getting Started
+
+To play with one of the examples, start the REPL and load the appropriate namespace.
+
+    lein repl
+    user=> (use 'clojure-actors.ping-pong)
+    user=> (ping-pong 3)
+
 # To-do
 
-route messages by recipient address instead of sending directly to recipient
+re-write Sleeping Barber implementation
 
-simplify message handlers with [pattern matching](https://github.com/clojure/core.match)
+re-write Dining Philosophers implementation
