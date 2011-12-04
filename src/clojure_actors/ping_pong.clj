@@ -5,20 +5,20 @@
 (actor/make
  :pinger
  0
- (fn [n msg]
+ (fn [cur-n msg]
    (match msg
-          [:set-n new-n] new-n
-          [:pong] (when (pos? n)
-                    (actor/send :printer "Pinger: ponged" n)
+          [:set-n n] n
+          [:pong] (when (pos? cur-n)
+                    (actor/send :printer "Pinger ponged" cur-n)
                     (actor/send :ponger :ping)
-                    (dec n)))))
+                    (dec cur-n)))))
 
 (actor/make
  :ponger
  nil
  (fn [_ msg]
    (match msg
-          [:ping] (do (actor/send :printer "Ponger: pinged")
+          [:ping] (do (actor/send :printer "Ponger pinged")
                       (actor/send :pinger :pong)))))
 
 (defn ping-pong [n]
