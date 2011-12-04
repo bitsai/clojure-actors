@@ -8,6 +8,4 @@ To play with one of the examples, start the REPL and load the appropriate namesp
 
 # To-do
 
-re-write Sleeping Barber implementation
-
 re-write Dining Philosophers implementation
