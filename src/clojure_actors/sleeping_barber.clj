@@ -5,57 +5,55 @@
 ;; Port of gparallelizer's 'Sleeping Barber' example
 ;; http://code.google.com/p/gparallelizer/wiki/ActorsExamples
 
-(def queue-capacity 2)
+(def queue-capacity 5)
 (def serving-time 100)
 
-(actor/make
+(actor/make!
  :barber
  nil
  (fn [_ msg]
    (match msg
-          [:enter cust] (do (actor/send :printer "Barber serving" cust)
+          [:enter cust] (do (actor/send! :printer "Barber serving" cust)
                             (Thread/sleep (* (rand-int 10) serving-time))
-                            (actor/send cust :done)
-                            (actor/send :waiting-room :next))
-          [:wait] (actor/send :printer "Barber sleeping"))))
+                            (actor/send! cust :done)
+                            (actor/send! :waiting-room :next))
+          [:wait] (actor/send! :printer "Barber sleeping"))))
 
-(actor/make
+(actor/make!
  :waiting-room
  {:queue [] :asleep? true}
- (fn [state msg]
-   (let [{:keys [queue asleep?]} state
-         full? (= queue-capacity (count queue))]
+ (fn [{:keys [queue asleep?] :as state} msg]
+   (let [full? (= queue-capacity (count queue))]
      (match msg
-            [:enter cust] (cond full? (do (actor/send cust :full)
-                                          state)
-                                asleep? (do (actor/send :waiting-room :next)
+            [:enter cust] (cond full?   (do (actor/send! cust :full)
+                                            state)
+                                asleep? (do (actor/send! :waiting-room :next)
                                             (assoc state
                                               :queue (conj queue cust)
                                               :asleep? false))
-                                :else (do (actor/send cust :wait)
-                                          (assoc state
-                                            :queue (conj queue cust))))
+                                :else   (do (actor/send! cust :wait)
+                                            (assoc state
+                                              :queue (conj queue cust))))
             [:next] (if-let [cust (first queue)]
-                      (do (actor/send :printer "Customer" cust "seated")
-                          (actor/send :barber :enter cust)
+                      (do (actor/send! :printer "Customer" cust "seated")
+                          (actor/send! :barber :enter cust)
                           (assoc state :queue (subvec queue 1)))
-                      (do (actor/send :barber :wait)
+                      (do (actor/send! :barber :wait)
                           (assoc state :asleep? true)))))))
 
-(defn new-customer [id]
-  (actor/make
+(defn make-customer! [id]
+  (actor/make!
    id
    nil
    (fn [_ msg]
      (match msg
-            [:full]  (actor/send :printer "Customer" id "leaving")
-            [:wait]  (actor/send :printer "Customer" id "waiting")
-            [:start] (actor/send :printer "Customer" id "is being served")
-            [:done]  (actor/send :printer "Customer" id "has been served"))))
-  (actor/send :printer "Customer" id "entering")
-  (actor/send :waiting-room :enter id))
+            [:full]  (actor/send! :printer "Customer" id "leaving")
+            [:wait]  (actor/send! :printer "Customer" id "waiting")
+            [:start] (actor/send! :printer "Customer" id "being served")
+            [:done]  (actor/send! :printer "Customer" id "been served")))))
 
 (defn sleeping-barber [n]
   (doseq [i (range n)]
-    (new-customer i)
-    (Thread/sleep (* (rand-int 5) serving-time))))
+    (make-customer! i)
+    (actor/send! :waiting-room :enter i)
+    (Thread/sleep serving-time)))
